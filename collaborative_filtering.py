@@ -129,7 +129,7 @@ ratings_mat = pd.read_csv("rating_mat.csv").as_matrix()
 indicators_mat = pd.read_csv("indicator_mat.csv").as_matrix()
 
 # content based features
-num_feats = 40
+num_feats = 100
 num_movies = 10330
 num_users = 668 
 
