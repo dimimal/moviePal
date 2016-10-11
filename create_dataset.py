@@ -72,6 +72,7 @@ imdb_rating_list = []
 
 # Look into the imdb ratings file for the movies in our data set and 
 # get the ratings
+print len(movies.index)
 for i in movies.index:
 	print i
 	# get movie titles
@@ -88,9 +89,10 @@ for i in movies.index:
 		imdb_rating_list.append(0.0)
 	print imdb_rating_list[-1]	
 
-movies["imdb rating"] = imdb_rating_list
+imdb_rating = pd.Series(imdb_rating_list)
 
 #######################################################################
 # Output to .csv
+imdb_rating.to_csv('imdb_rating.csv', index=False)
 movies.to_csv('data-set.csv', index=False)	
 
