@@ -159,7 +159,7 @@ my_ratings = np.zeros(num_movies)
 
 # Check the file movie_idx.txt for id of each movie in our dataset
 # For example, Toy Story (1995) has ID 1, so to rate it "4", you can set
-my_ratings[22] = 4
+my_ratings[109] = 4
 
 # Or suppose did not enjoy Silence of the Lambs (1991), you can set
 #my_ratings[1060] = 2
@@ -167,14 +167,14 @@ my_ratings[22] = 4
 # We have selected a few movies we liked / did not like and the ratings we
 # gave are as follows:
 #my_ratings[71] = 3
-my_ratings[68] = 5
-my_ratings[285] = 4
-my_ratings[55] = 5
+my_ratings[1188] = 5
+#my_ratings[] = 4
+my_ratings[293] = 5
 #my_ratings[65] = 3
-my_ratings[180] = 5
-my_ratings[474] = 4
-my_ratings[126] = 5
-my_ratings[22] = 5
+my_ratings[2260] = 5
+#my_ratings[] = 4
+my_ratings[1238] = 5
+my_ratings[2890] = 5
 
 print 'New user ratings:'
 for i in range(len(my_ratings)):
@@ -188,39 +188,61 @@ indicators_mat = np.column_stack((my_ratings, indicators_mat)).astype(bool)
 num_users = ratings_mat.shape[1]
 
 # use previous parameters if available.
-if os.path.exists("movie_parameters.pkl"):
-	print "Loading previous model..."
-	movie_params = np.load("movie_parameters.pkl")
-	user_params = np.load("user_parameters.pkl")
-	print movie_params.shape, user_params.shape
-# else randomly initialize
-else:
-	print "Random initialization."
-	movie_params = np.random.rand(num_movies,num_feats)
-	user_params = np.random.rand(num_users,num_feats)
+#if os.path.exists("movie_parameters.pkl"):
+#	print "Loading previous model..."
+#	movie_params = np.load("movie_parameters.pkl")
+#	user_params = np.load("user_parameters.pkl")
+#	print movie_params.shape, user_params.shape
+## else randomly initialize
+#else:
+print "Random initialization."
+movie_params = np.random.rand(num_movies,num_feats)
+user_params = np.random.rand(num_users,num_feats)
+user_params_batch = user_params[0:604,:]
 ################################# Normalize feats #####################################
 ratings_mat_norm, ratings_mat_mean = normalize_ratings(ratings_mat, indicators_mat)
-
-########################## Learn the training parameters ##############################
-# use conjugate gradients optimization
-
 print "Start learning..."
-# stack parameters in a matrix
-initial_parameters = np.hstack((movie_params.T.flatten(), user_params.T.flatten()))
+########################## Learn the training parameters ##############################
+# We are going to use conjugate gradients optimization.
+# Due to scaling issues with large data sets we are going to train on mini batches of 604 users.
+for i in range(0,num_users,604):
+	print "Batch %d to %d users" %(i,(i+604))
+	# Batch parameters
+	num_users_batch = 604
+	 
+	ratings_mat_norm_batch = ratings_mat_norm[:,i:(i+604)]
+	indicators_mat_batch = indicators_mat[:,i:(i+604)]
 
-# regularize by 1.5
-reg = 1.5
+	# stack parameters in a matrix
+	initial_parameters = np.hstack((movie_params.T.flatten(), user_params_batch.T.flatten()))
 
-costFunc = lambda p: cost_function(p, ratings_mat_norm, indicators_mat, num_users, num_movies, num_feats, reg)[0]
-gradFunc = lambda p: cost_function(p, ratings_mat_norm, indicators_mat, num_users, num_movies, num_feats, reg)[1]
+	# regularize by this value
+	reg = 1.5
 
-result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 1000.0})
-theta = result.x
-cost = result.fun
+	# Cost and gradient functions for the optimization.
+	costFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
+				num_users_batch, num_movies, num_feats, reg)[0]
+	gradFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
+				 num_users_batch, num_movies, num_feats, reg)[1]
+
+	result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 100})
+	theta = result.x
+
+	# unfold returned values
+	user_params_batch = theta[num_movies*num_feats:].reshape(num_users_batch, num_feats)
+	# For the batches after the first one we stack the user parameters to get the final user parameters.
+	if i > 0:
+		user_params = np.vstack((user_params,user_params_batch))
+	# For the first we do not stack.
+	else:
+		print "First mini batch finished"
+		user_params = user_params_batch
+	movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
+	cost = result.fun
 
 # unfold returned values
-movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
-user_params = theta[num_movies*num_feats:].reshape(num_users, num_feats)
+#movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
+#user_params = theta[num_movies*num_feats:].reshape(num_users, num_feats)
 
 print 'Recommender system learning completed.'
 
