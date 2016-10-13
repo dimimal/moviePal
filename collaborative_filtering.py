@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
 import pickle
+import os
 
 # cost function to minimize
 # args: movie_params: # movies * # feats
@@ -56,8 +57,9 @@ def normalize_ratings(ratings_mat, indicators_mat):
 	m, n = ratings_mat.shape
 	ratings_mat_mean = np.zeros(m)
 	ratings_mat_norm = np.zeros(ratings_mat.shape)
+	
 	# subtract the mean of all non-zero values for each row
-	for i in range(n):
+	for i in range(m):
 		idx = (indicators_mat[i,:]==1).nonzero()[0]
 		if len(idx):
 			ratings_mat_mean[i] = np.mean(ratings_mat[i, idx])
@@ -65,7 +67,6 @@ def normalize_ratings(ratings_mat, indicators_mat):
 		else:
 			ratings_mat_mean[i] = 0.0
 			ratings_mat_norm[i,idx] = 0.0
-
 	return ratings_mat_norm, ratings_mat_mean
 ################################################################################################
 # This part is used for debugging 
@@ -123,15 +124,17 @@ def checkCostFunction(Lambda=0):
 		  'the relative difference will be small (less than 1e-9). \n' \
 		  '\nRelative Difference: %g\n' % diff
 
-###############################################################################################
+##################################### MAIN ############################################
 print "Loading ratings data..."
+# #_movies * #_users
 ratings_mat = pd.read_csv("rating_mat.csv").as_matrix()
-indicators_mat = pd.read_csv("indicator_mat.csv").as_matrix()
+indicators_mat = pd.read_csv("indicator_mat.csv").as_matrix().astype(bool)
 
 # content based features
-num_feats = 100
-num_movies = 10330
-num_users = 668 
+num_feats = 10
+num_movies = ratings_mat.shape[0]
+num_users = ratings_mat.shape[1] 
+print num_movies, num_users
 
 ########################## create parameters to minimize ##############################
 movie_params = np.random.rand(num_movies,num_feats)
@@ -143,12 +146,58 @@ print ratings_mat.shape, indicators_mat.shape, movie_params.shape, user_params.s
 
 
 ########################## Estimate initial cost ######################################
-cost, grad = cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, num_feats,1.5)
+cost, grad = cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, num_feats, 0)
 
 print "Initial cost is %f" %cost
 
 checkCostFunction()
+################################# Add some ratings ####################################
+movies = pd.read_csv('data-set.csv')
+movie_title_dict = movies['Title'].to_dict()
+#  Initialize my ratings
+my_ratings = np.zeros(num_movies)
 
+# Check the file movie_idx.txt for id of each movie in our dataset
+# For example, Toy Story (1995) has ID 1, so to rate it "4", you can set
+my_ratings[22] = 4
+
+# Or suppose did not enjoy Silence of the Lambs (1991), you can set
+#my_ratings[1060] = 2
+
+# We have selected a few movies we liked / did not like and the ratings we
+# gave are as follows:
+#my_ratings[71] = 3
+my_ratings[68] = 5
+my_ratings[285] = 4
+my_ratings[55] = 5
+#my_ratings[65] = 3
+my_ratings[180] = 5
+my_ratings[474] = 4
+my_ratings[126] = 5
+my_ratings[22] = 5
+
+print 'New user ratings:'
+for i in range(len(my_ratings)):
+    if my_ratings[i] > 0:
+        print 'Rated %d for %s\n' % (my_ratings[i], movie_title_dict[i])
+
+#  Add our own ratings to the data matrix
+ratings_mat = np.column_stack((my_ratings, ratings_mat))
+indicators_mat = np.column_stack((my_ratings, indicators_mat)).astype(bool)
+
+num_users = ratings_mat.shape[1]
+
+# use previous parameters if available.
+if os.path.exists("movie_parameters.pkl"):
+	print "Loading previous model..."
+	movie_params = np.load("movie_parameters.pkl")
+	user_params = np.load("user_parameters.pkl")
+	print movie_params.shape, user_params.shape
+# else randomly initialize
+else:
+	print "Random initialization."
+	movie_params = np.random.rand(num_movies,num_feats)
+	user_params = np.random.rand(num_users,num_feats)
 ################################# Normalize feats #####################################
 ratings_mat_norm, ratings_mat_mean = normalize_ratings(ratings_mat, indicators_mat)
 
@@ -197,9 +246,6 @@ pre=np.array([[idx, p] for idx, p in enumerate(my_predictions)])
 post = pre[pre[:,1].argsort()[::-1]]
 r = post[:,1]
 ix = post[:,0]
-
-movies = pd.read_csv('data-set.csv')
-movie_title_dict = movies['title'].to_dict()
 
 print '\nTop recommendations for you:'
 for i in range(10):
