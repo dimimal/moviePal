@@ -15,10 +15,10 @@ r = post[:,1]
 ix = post[:,0]
 
 
-movie_title_dict = df['title'].to_dict()
+movie_title_dict = df['Title'].to_dict()
 
 print '\nTop recommendations for you:'
-for i in range(50):
+for i in range(10):
 	j = int(ix[i])
 	#print movies[movies['movieId'] == movie_id]
 	print 'Predicting rating %.1f for movie %s\n' % (my_predictions[j], movie_title_dict[j])

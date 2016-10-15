@@ -68,7 +68,7 @@ def normalize_ratings(ratings_mat, indicators_mat):
 			ratings_mat_mean[i] = 0.0
 			ratings_mat_norm[i,idx] = 0.0
 	return ratings_mat_norm, ratings_mat_mean
-################################################################################################
+#=================================================================================================
 # This part is used for debugging 
 # Checks numerical and gradients for consistency
 
@@ -124,7 +124,7 @@ def checkCostFunction(Lambda=0):
 		  'the relative difference will be small (less than 1e-9). \n' \
 		  '\nRelative Difference: %g\n' % diff
 
-##################################### MAIN ############################################
+#=============================================== MAIN ================================================
 print "Loading ratings data..."
 # #_movies * #_users
 ratings_mat = pd.read_csv("rating_mat.csv").as_matrix()
@@ -136,7 +136,7 @@ num_movies = ratings_mat.shape[0]
 num_users = ratings_mat.shape[1] 
 print num_movies, num_users
 
-########################## create parameters to minimize ##############################
+#=================================== create parameters to minimize ===================================
 movie_params = np.random.rand(num_movies,num_feats)
 user_params = np.random.rand(num_users,num_feats)
 
@@ -145,13 +145,13 @@ params = np.hstack((movie_params.T.flatten(), user_params.T.flatten()))
 print ratings_mat.shape, indicators_mat.shape, movie_params.shape, user_params.shape
 
 
-########################## Estimate initial cost ######################################
+#======================================= Estimate initial cost =======================================
 cost, grad = cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, num_feats, 0)
 
 print "Initial cost is %f" %cost
 
 checkCostFunction()
-################################# Add some ratings ####################################
+#========================================== Add some ratings =========================================
 movies = pd.read_csv('data-set.csv')
 movie_title_dict = movies['Title'].to_dict()
 #  Initialize my ratings
@@ -198,47 +198,51 @@ num_users = ratings_mat.shape[1]
 print "Random initialization."
 movie_params = np.random.rand(num_movies,num_feats)
 user_params = np.random.rand(num_users,num_feats)
-user_params_batch = user_params[0:604,:]
-################################# Normalize feats #####################################
+#user_params_batch = user_params[0:3020,:]
+#================================== Normalize feats ==================================
 ratings_mat_norm, ratings_mat_mean = normalize_ratings(ratings_mat, indicators_mat)
 print "Start learning..."
-########################## Learn the training parameters ##############################
+#================================== Learn the training parameters ==================================
 # We are going to use conjugate gradients optimization.
 # Due to scaling issues with large data sets we are going to train on mini batches of 604 users.
-for i in range(0,num_users,604):
-	print "Batch %d to %d users" %(i,(i+604))
-	# Batch parameters
-	num_users_batch = 604
-	 
-	ratings_mat_norm_batch = ratings_mat_norm[:,i:(i+604)]
-	indicators_mat_batch = indicators_mat[:,i:(i+604)]
+# Train 10 epochs.
+batch_size = 604
+for j in range(10):
+	for i in range(0,(num_users - batch_size),batch_size):
+		print "Batch %d to %d users" %(i,(i+batch_size))
+		# Batch parameters
+		num_users_batch = batch_size
+		user_params_batch = user_params[i:(i + batch_size),:]
 
-	# stack parameters in a matrix
-	initial_parameters = np.hstack((movie_params.T.flatten(), user_params_batch.T.flatten()))
+		ratings_mat_norm_batch = ratings_mat_norm[:,i:(i+batch_size)]
+		indicators_mat_batch = indicators_mat[:,i:(i+batch_size)]
 
-	# regularize by this value
-	reg = 1.5
+		# stack parameters in a matrix
+		initial_parameters = np.hstack((movie_params.T.flatten(), user_params_batch.T.flatten()))
 
-	# Cost and gradient functions for the optimization.
-	costFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
-				num_users_batch, num_movies, num_feats, reg)[0]
-	gradFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
-				 num_users_batch, num_movies, num_feats, reg)[1]
+		# regularize by this value
+		reg = 1.5
 
-	result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 100})
-	theta = result.x
+		# Cost and gradient functions for the optimization.
+		costFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
+					num_users_batch, num_movies, num_feats, reg)[0]
+		gradFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
+					 num_users_batch, num_movies, num_feats, reg)[1]
 
-	# unfold returned values
-	user_params_batch = theta[num_movies*num_feats:].reshape(num_users_batch, num_feats)
-	# For the batches after the first one we stack the user parameters to get the final user parameters.
-	if i > 0:
-		user_params = np.vstack((user_params,user_params_batch))
-	# For the first we do not stack.
-	else:
-		print "First mini batch finished"
-		user_params = user_params_batch
-	movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
-	cost = result.fun
+		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 300})
+		theta = result.x
+
+		# unfold returned values
+		user_params_batch = theta[num_movies*num_feats:].reshape(num_users_batch, num_feats)
+		
+		if i > 0:
+			user_params[i:(i + batch_size),:] = user_params_batch
+		
+		else:
+			print "First mini batch finished"
+			user_params[i:(i + batch_size),:] = user_params_batch
+		movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
+		cost = result.fun
 
 # unfold returned values
 #movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
@@ -246,7 +250,7 @@ for i in range(0,num_users,604):
 
 print 'Recommender system learning completed.'
 
-###################### Save values in order to use our model later ####################
+#===================== Save values in order to use our model later =====================
 movie_params_file = open("movie_parameters.pkl", 'wb')
 pickle.dump(movie_params, movie_params_file)
 movie_params_file.close()
@@ -259,7 +263,7 @@ ratings_mat_mean_file = open("ratings_mat_mean.pkl", 'wb')
 pickle.dump(ratings_mat_mean, ratings_mat_mean_file)
 ratings_mat_mean_file.close()
 
-######################## Predict for user 1 #############################################
+#================================= Predict for user 1 =================================
 
 p = movie_params.dot(user_params.T)
 my_predictions = p[:, 0] + ratings_mat_mean
