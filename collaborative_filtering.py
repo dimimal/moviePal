@@ -13,34 +13,28 @@ import os
 
 # returns: reg_cost: the squared error cost regularized by reg
 # 		   grad: the two gradients in a matrix
-def cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, num_features, reg):
+def cost_function(params, movie_params, ratings_mat, indicators_mat, num_users, num_movies, num_features, reg):
 
 	"""returns the cost and gradient for the
 	"""
 	# Unfold the movie_params and user_params matrices from params
-	movie_params = np.array(params[:num_movies*num_features]).reshape(num_features, num_movies).T.copy()
-	user_params = np.array(params[num_movies*num_features:]).reshape(num_features, num_users).T.copy()
+	user_params = np.array(params).reshape(num_features, num_users).T.copy()
 
 	cost = 0
-	movie_params_grad = np.zeros(movie_params.shape)
 	user_params_grad = np.zeros(user_params.shape)
 
 	squared_error = (np.dot(user_params,movie_params.transpose()) - ratings_mat.transpose())**2
 	cost = (sum(sum(indicators_mat*squared_error.transpose())))/2
 
-	movie_params_grad = np.dot((np.dot(user_params,movie_params.transpose()) 
-				- ratings_mat.transpose()).transpose()*indicators_mat,user_params)
-
 	user_params_grad = np.dot(((np.dot(user_params,movie_params.transpose())
 				 - ratings_mat.transpose()).transpose()*indicators_mat).transpose(),movie_params)
 
 	# add regularization if reg > 0
-	cost = cost + (reg/2)*sum(sum(movie_params**2)) + (reg/2)*sum(sum(user_params**2))
+	cost = cost + (reg/2)*sum(sum(user_params**2))
 
-	movie_params_grad = movie_params_grad + reg * movie_params
 	user_params_grad = user_params_grad + reg * user_params
 
-	grad = np.hstack((movie_params_grad.T.flatten(),user_params_grad.T.flatten()))
+	grad = user_params_grad.T.flatten()
 	print cost
 	return cost, grad
 
@@ -100,9 +94,9 @@ def checkCostFunction(Lambda=0):
 	num_features = Theta_t.shape[1]
 
    # Unroll parameters
-	params = np.hstack((X.T.flatten(), Theta.T.flatten()))
+	params = np.hstack((Theta.T.flatten()))
 
-	costFunc = lambda t: cost_function(t, Y, R, num_users, num_movies, num_features, Lambda)
+	costFunc = lambda t: cost_function(t, movie_params, Y, R, num_users, num_movies, num_features, Lambda)
 
 	def costFunc_w(t):
 		Jgrad = costFunc(t)
@@ -110,7 +104,7 @@ def checkCostFunction(Lambda=0):
 
 	numgrad = computeNumericalGradient(costFunc_w, params)
 
-	cost, grad = cost_function(params, Y, R, num_users, num_movies, num_features, Lambda)
+	cost, grad = cost_function(params, movie_params, Y, R, num_users, num_movies, num_features, Lambda)
 
 
 	print np.column_stack((numgrad, grad))
@@ -129,28 +123,29 @@ print "Loading ratings data..."
 # #_movies * #_users
 ratings_mat = pd.read_csv("rating_mat.csv").as_matrix()
 indicators_mat = pd.read_csv("indicator_mat.csv").as_matrix().astype(bool)
+movie_params = pd.read_csv("movie_feats_mat.csv").as_matrix()
 
 # content based features
-num_feats = 10
+num_movie_feats = movie_params.shape[1]
+num_feats = num_movie_feats
 num_movies = ratings_mat.shape[0]
 num_users = ratings_mat.shape[1] 
 print num_movies, num_users
 
 #=================================== create parameters to minimize ===================================
-movie_params = np.random.rand(num_movies,num_feats)
 user_params = np.random.rand(num_users,num_feats)
 
-params = np.hstack((movie_params.T.flatten(), user_params.T.flatten()))
+params = user_params.T.flatten()
 
 print ratings_mat.shape, indicators_mat.shape, movie_params.shape, user_params.shape
 
 
 #======================================= Estimate initial cost =======================================
-cost, grad = cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, num_feats, 0)
+cost, grad = cost_function(params, movie_params, ratings_mat, indicators_mat, num_users, num_movies, num_feats, 0)
 
 print "Initial cost is %f" %cost
 
-checkCostFunction()
+#checkCostFunction()
 #========================================== Add some ratings =========================================
 movies = pd.read_csv('data-set.csv')
 movie_title_dict = movies['Title'].to_dict()
@@ -196,9 +191,9 @@ num_users = ratings_mat.shape[1]
 ## else randomly initialize
 #else:
 print "Random initialization."
-movie_params = np.random.rand(num_movies,num_feats)
+
 user_params = np.random.rand(num_users,num_feats)
-#user_params_batch = user_params[0:3020,:]
+
 #================================== Normalize feats ==================================
 ratings_mat_norm, ratings_mat_mean = normalize_ratings(ratings_mat, indicators_mat)
 print "Start learning..."
@@ -218,35 +213,28 @@ for j in range(10):
 		indicators_mat_batch = indicators_mat[:,i:(i+batch_size)]
 
 		# stack parameters in a matrix
-		initial_parameters = np.hstack((movie_params.T.flatten(), user_params_batch.T.flatten()))
-
+		initial_parameters = user_params_batch.T.flatten()
 		# regularize by this value
 		reg = 1.5
 
 		# Cost and gradient functions for the optimization.
-		costFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
+		costFunc = lambda p: cost_function(p, movie_params, ratings_mat_norm_batch, indicators_mat_batch, 
 					num_users_batch, num_movies, num_feats, reg)[0]
-		gradFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
+		gradFunc = lambda p: cost_function(p, movie_params, ratings_mat_norm_batch, indicators_mat_batch, 
 					 num_users_batch, num_movies, num_feats, reg)[1]
 
-		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 300})
+		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 100})
 		theta = result.x
 
 		# unfold returned values
-		user_params_batch = theta[num_movies*num_feats:].reshape(num_users_batch, num_feats)
-		
+		user_params_batch = theta.reshape(num_users_batch, num_feats)
 		if i > 0:
 			user_params[i:(i + batch_size),:] = user_params_batch
 		
 		else:
 			print "First mini batch finished"
 			user_params[i:(i + batch_size),:] = user_params_batch
-		movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
 		cost = result.fun
-
-# unfold returned values
-#movie_params = theta[:num_movies*num_feats].reshape(num_movies, num_feats)
-#user_params = theta[num_movies*num_feats:].reshape(num_users, num_feats)
 
 print 'Recommender system learning completed.'
 
