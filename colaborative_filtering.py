@@ -23,14 +23,19 @@ def load_data():
 	# #_movies * #_users
 	ratings_mat = pd.read_csv("rating_mat.csv").as_matrix()
 	indicators_mat = pd.read_csv("indicator_mat.csv").as_matrix().astype(bool)
-	movie_params = pd.read_csv("movie_feats_mat.csv").as_matrix()
+	num_movies = ratings_mat.shape[0]
+	num_users = ratings_mat.shape[1] 
+	#=============================================================================================================
+	# Modified for more feats.
+	#movie_params = pd.read_csv("movie_feats_mat.csv").as_matrix()
+	num_feats = 100
+	movie_params = np.random.rand(num_movies,num_feats)
 
 	# content based features
 	num_movie_feats = movie_params.shape[1]
-	num_feats = num_movie_feats
-	num_movies = ratings_mat.shape[0]
-	num_users = ratings_mat.shape[1] 
-	print num_movies, num_users
+	#num_feats = num_movie_feats
+	#============================================================================================================
+	print num_movies, num_users, num_feats
 	return ratings_mat, indicators_mat, movie_params, num_movie_feats, num_feats, num_movies, num_users
 
 #==================================== Cost and Gradients Computation =============================================
@@ -190,7 +195,7 @@ print "Start learning..."
 # Due to scaling issues with large data sets we are going to train on mini batches of 604 users.
 # Train 1 epoch.
 batch_size = 604
-for j in range(1):
+for j in range(2):
 	# Go through all 10 mini-batches of users.
 	for i in range(0,(num_users - batch_size),batch_size):
 		print "Batch %d to %d users" %(i,(i+batch_size))

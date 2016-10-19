@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 
 #==========================================================================================================================
-# Loads movie data set and extract genre features.
+# Loads movie data set and extract genre features. 
+#The output matrix is num movies x 18 G[i,j] is 1 if movie i has the genre j. 
 movies = pd.read_csv("data-set.csv")
 # Match the genres with a number.
 genres_dict = {'Action': 0, 'Adventure':1, 'Animation':2, 'Children\'s':3, 'Comedy':4, 'Crime':5, 'Documentary':6, 
