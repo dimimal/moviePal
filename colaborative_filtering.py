@@ -213,7 +213,7 @@ for j in range(1):
 					 num_users_batch, num_movies, num_feats, reg)[1]
 
 		# Use the conjugate gradients optimization.
-		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 1000})
+		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 100})
 		theta = result.x
 
 		# Unfold returned values

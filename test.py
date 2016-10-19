@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 
 m_p = np.load("movie_parameters.pkl")
 u_p = np.load("user_parameters.pkl")
@@ -8,7 +9,8 @@ r_m = np.load("ratings_mat_mean.pkl")
 ratings = pd.read_csv("rating_mat.csv").as_matrix()	
 indicators = pd.read_csv("indicator_mat.csv").as_matrix().astype(bool)
 
-user = 1
+user = int(raw_input("Enter user: "))
+genre = raw_input("Enter genre: ")
 p = m_p.dot(u_p.T)
 
 my_predictions = p[:, (user )] + r_m
@@ -23,11 +25,14 @@ ix = post[:,0]
 movie_title_dict = df['Title'].to_dict()
 
 print '\nTop recommendations for you:'
-for i in range(10):
+for i in range(50):
 	j = int(ix[i])
 	#print movies[movies['movieId'] == movie_id]
 	movie = df[df['Title'] == movie_title_dict[j]]
-	print 'Predicting rating %.1f for movie %s %s\n' % (my_predictions[j], movie_title_dict[j], movie['Genres'])
+	genres = movie['Genres'].values[0]
+	genres_regex =  "("+ genre + ")"
+	if re.search(genres_regex,genres):
+		print 'Predicting rating %.1f for movie %s %s\n' % (my_predictions[j], movie_title_dict[j], movie['Genres'].values[0])
 raw_input("Press key")
 print '\nOriginal ratings provided:'
 my_ratings = ratings[:, user]
