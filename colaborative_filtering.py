@@ -65,8 +65,8 @@ def cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, nu
 	# Theta[j].T.dot(X[i]) is the prediction for the movie i by the user j.
 	# J[X,Theta] = (1/2)*sum(sum((squared error)^2)) is the cost function.
 
-	squared_error = (np.dot(user_params,movie_params.transpose()) - ratings_mat.transpose())**2
-	cost = (sum(sum(indicators_mat*squared_error.transpose())))/2
+	squared_error = (ratings_mat - np.dot(movie_params,user_params.T))**2
+	cost = (sum(sum(indicators_mat*squared_error)))/2
 
 	movie_params_grad = np.dot((np.dot(user_params,movie_params.transpose()) 
 				- ratings_mat.transpose()).transpose()*indicators_mat,user_params)
@@ -193,11 +193,11 @@ print "Start learning..."
 #============================================ Learn the Model ======================================================
 # We are going to use conjugate gradients optimization.
 # Due to scaling issues with large data sets we are going to train on mini batches of 604 users.
-# Train 1 epoch.
+# Train 10 epochs.
 batch_size = 604
-for j in range(2):
+for j in range(10):
 	# Go through all 10 mini-batches of users.
-	for i in range(0,(num_users - batch_size),batch_size):
+	for i in range(0,num_users,batch_size):
 		print "Batch %d to %d users" %(i,(i+batch_size))
 		# Mini-batch parameters
 		num_users_batch = batch_size
@@ -218,7 +218,7 @@ for j in range(2):
 					 num_users_batch, num_movies, num_feats, reg)[1]
 
 		# Use the conjugate gradients optimization.
-		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 100})
+		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 20})
 		theta = result.x
 
 		# Unfold returned values
@@ -232,6 +232,10 @@ for j in range(2):
 			print "First mini batch finished"
 			user_params[i:(i + batch_size),:] = user_params_batch
 		cost = result.fun
+	# Print rmse to monitor overall progress.
+	print "epoch:",j,'rmse:',np.sqrt(np.sum((indicators_mat * 
+						(ratings_mat - (np.dot(movie_params,user_params.T)+ratings_mat_mean.reshape((ratings_mat_mean.shape[0],1)))))**2)
+						/len(ratings_mat[ratings_mat > 0]))
 
 print 'Recommender system learning completed.'
 
