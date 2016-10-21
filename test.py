@@ -18,7 +18,7 @@ movie_genres_dict = df['Genres'].to_dict()
 print "Computing rmse..."
 train_rmse = rmse(indicators,ratings,m_p,u_p)
 print train_rmse
-'''
+
 user = int(raw_input("Enter user: "))
 genre = raw_input("Enter genre: ")
 user_preference = user_prefs.iloc[user].values
@@ -60,12 +60,12 @@ for i in range(count):
 	genres_regex =  "("+ genre + ")"
 	if re.search(genres_regex,genres):
 		print 'Predicting rating %.1f for movie %s %s\n' % (r[i], movie_title_dict[j], movie['Genres'].values[0])
-'''
-#raw_input("Press key")
-#print '\nOriginal ratings provided:'
-#my_ratings = ratings[:, user]
-#for i in range(len(my_ratings)):
-#    if my_ratings[i] > 0:
-#    	movie = df[df['Title'] == movie_title_dict[i]]
-#        print 'Rated %d for %s %s\n' % (my_ratings[i], movie_title_dict[i], movie['Genres'].values[0])
+
+raw_input("Press key")
+print '\nOriginal ratings provided:'
+my_ratings = ratings[:, user]
+for i in range(len(my_ratings)):
+    if my_ratings[i] > 0:
+    	movie = df[df['Title'] == movie_title_dict[i]]
+        print 'Rated %d for %s %s\n' % (my_ratings[i], movie_title_dict[i], movie['Genres'].values[0])
          
