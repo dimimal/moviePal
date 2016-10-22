@@ -28,7 +28,7 @@ def load_data():
 	#=============================================================================================================
 	# Modified for more feats.
 	#movie_params = pd.read_csv("movie_feats_mat.csv").as_matrix()
-	num_feats = 100
+	num_feats = 20
 	movie_params = np.random.rand(num_movies,num_feats)
 
 	# content based features
@@ -178,7 +178,7 @@ J, grad = cost_function(np.hstack((movie_params.T.flatten(), user_params.T.flatt
 print 'Checking Gradients (without regularization) ...'
 checkCostFunction()
 print 'Checking Gradients (with regularization) ...'
-checkCostFunction(1.5)
+checkCostFunction(1)
 
 #========================================== Load Movies Data Set ===================================================
 # Movies data set and dictionary used to make predictions.
@@ -195,7 +195,7 @@ print "Start learning..."
 # Due to scaling issues with large data sets we are going to train on mini batches of 604 users.
 # Train 10 epochs.
 batch_size = 604
-for j in range(10):
+for j in range(100):
 	# Go through all 10 mini-batches of users.
 	for i in range(0,num_users,batch_size):
 		print "Batch %d to %d users" %(i,(i+batch_size))
@@ -209,7 +209,7 @@ for j in range(10):
 		# stack parameters in a vector.
 		initial_parameters = np.hstack((movie_params.T.flatten(), user_params_batch.T.flatten()))
 		# regularize by this value
-		reg = 1.5
+		reg = 0.1
 
 		# Cost and gradient functions for the optimization.
 		costFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
@@ -218,7 +218,7 @@ for j in range(10):
 					 num_users_batch, num_movies, num_feats, reg)[1]
 
 		# Use the conjugate gradients optimization.
-		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 20})
+		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 1})
 		theta = result.x
 
 		# Unfold returned values
