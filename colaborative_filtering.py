@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import scipy.spatial.distance as dist
 from scipy.optimize import minimize
+from scipy.optimize import check_grad
 import pickle
 import os
 
@@ -28,7 +29,7 @@ def load_data():
 	#=============================================================================================================
 	# Modified for more feats.
 	#movie_params = pd.read_csv("movie_feats_mat.csv").as_matrix()
-	num_feats = 20
+	num_feats = 22
 	movie_params = np.random.rand(num_movies,num_feats)
 
 	# content based features
@@ -65,17 +66,15 @@ def cost_function(params, ratings_mat, indicators_mat, num_users, num_movies, nu
 	# Theta[j].T.dot(X[i]) is the prediction for the movie i by the user j.
 	# J[X,Theta] = (1/2)*sum(sum((squared error)^2)) is the cost function.
 
-	squared_error = (ratings_mat - np.dot(movie_params,user_params.T))**2
-	cost = (sum(sum(indicators_mat*squared_error)))/2
+	error = ((np.dot(movie_params,user_params.T) - ratings_mat)*indicators_mat)
+	cost = 0.5 * (error**2).sum()
 
-	movie_params_grad = np.dot((np.dot(user_params,movie_params.transpose()) 
-				- ratings_mat.transpose()).transpose()*indicators_mat,user_params)
+	movie_params_grad = np.dot(error,user_params)
 
-	user_params_grad = np.dot(((np.dot(user_params,movie_params.transpose())
-				 - ratings_mat.transpose()).transpose()*indicators_mat).transpose(),movie_params)
+	user_params_grad = np.dot(error.T,movie_params)
 
 	# Add regularization if Lambda is greater than zero.
-	cost = cost + (Lambda*sum(sum(movie_params**2)))/2 + (Lambda*sum(sum(user_params**2)))/2
+	cost = cost + (Lambda/2.0)*(movie_params**2).sum() + (Lambda/2.0)*(user_params**2).sum()
 	print cost
 
 	movie_params_grad = movie_params_grad + Lambda * movie_params
@@ -188,13 +187,14 @@ movie_title_dict = movies['Title'].to_dict()
 #============================================ Normalize feats ======================================================
 # Mean normalization of ratings.
 ratings_mat_norm, ratings_mat_mean = normalize_ratings(ratings_mat, indicators_mat)
+
 print "Start learning..."
 
 #============================================ Learn the Model ======================================================
 # We are going to use conjugate gradients optimization.
 # Due to scaling issues with large data sets we are going to train on mini batches of 604 users.
 # Train 10 epochs.
-batch_size = 604
+batch_size = 3020
 for j in range(100):
 	# Go through all 10 mini-batches of users.
 	for i in range(0,num_users,batch_size):
@@ -209,7 +209,7 @@ for j in range(100):
 		# stack parameters in a vector.
 		initial_parameters = np.hstack((movie_params.T.flatten(), user_params_batch.T.flatten()))
 		# regularize by this value
-		reg = 0.1
+		reg = 1.5
 
 		# Cost and gradient functions for the optimization.
 		costFunc = lambda p: cost_function(p, ratings_mat_norm_batch, indicators_mat_batch, 
@@ -233,10 +233,8 @@ for j in range(100):
 			user_params[i:(i + batch_size),:] = user_params_batch
 		cost = result.fun
 	# Print rmse to monitor overall progress.
-	print "epoch:",j,'rmse:',np.sqrt(np.sum((indicators_mat * 
-						(ratings_mat - (np.dot(movie_params,user_params.T)+ratings_mat_mean.reshape((ratings_mat_mean.shape[0],1)))))**2)
+	print "epoch:",j,'rmse:',np.sqrt(np.sum(( ((np.dot(movie_params,user_params.T)+ratings_mat_mean.reshape((ratings_mat_mean.shape[0],1))) - ratings_mat)*indicators_mat)**2)
 						/len(ratings_mat[ratings_mat > 0]))
-
 print 'Recommender system learning completed.'
 
 #==================================== Save values in order to use our model later. ==============================================
