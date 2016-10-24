@@ -3,7 +3,7 @@ import numpy as np
 import re
 
 def rmse(indicators,ratings,m_p,u_p):
-    return np.sqrt(np.sum((indicators * (ratings - (np.dot(m_p,u_p.T)+r_m.reshape((r_m.shape[0],1)))))**2)/len(ratings[ratings > 0]))
+    return np.sqrt(np.sum((indicators * (ratings - (np.dot(m_p.T,u_p)+r_m.reshape((r_m.shape[0],1)))))**2)/len(ratings[ratings > 0]))
 
 print "Loading parameters..."
 m_p = np.load("movie_parameters.pkl")
@@ -16,16 +16,18 @@ user_prefs = pd.read_csv("user_preferences.csv")
 movie_genres_dict = df['Genres'].to_dict()
 
 print "Computing rmse..."
+print m_p.shape, u_p.shape
 train_rmse = rmse(indicators,ratings,m_p,u_p)
 print train_rmse
 
-'''
+
 user = int(raw_input("Enter user: "))
 genre = raw_input("Enter genre: ")
 user_preference = user_prefs.iloc[user].values
 print user_preference
 
-p = m_p.dot(u_p.T)
+#p = m_p.dot(u_p)
+p = np.dot(m_p.T,u_p)
 
 my_predictions = p[:, (user )] + r_m
 
@@ -69,4 +71,3 @@ for i in range(len(my_ratings)):
     if my_ratings[i] > 0:
     	movie = df[df['Title'] == movie_title_dict[i]]
         print 'Rated %d for %s %s\n' % (my_ratings[i], movie_title_dict[i], movie['Genres'].values[0])
-'''         
