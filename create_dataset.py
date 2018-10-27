@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-path = "C:\Users\Alex\Documents\University\Python\Data\Movie_Lens_1M"
+path = "/home/dimitris/GitProjects/moviePal/Movie Data"
 
 # ======================== Loads user, movie data and ratings from csv =======================
 # Returns three DataFrames with user, movie data and ratings
@@ -16,7 +16,7 @@ def read_data():
 	# drop the useless column
 	ratings = ratings.drop('Timestamp', axis=1)
 	ratings = ratings.sort_values(by='MovieID')
-	
+
 	# read file with user info
 	users = pd.read_csv(path + "/users.csv", header=None)
 	#UserID::Gender::Age::Occupation::Zip-code
@@ -54,7 +54,7 @@ def create_user_feats():
 # I: num movies x num users data frame. I(i,j) is one if user j has rated movie i else zero.
 def create_ratings_matrix(ratings,rev_movie_id_dict,num_movies,num_users):
 	ratings_mat = np.zeros((num_movies,num_users),dtype=float)
-	indicators_mat = np.zeros((num_movies,num_users),dtype=int) 
+	indicators_mat = np.zeros((num_movies,num_users),dtype=int)
 
 	# go through the ratings
 	for i in range(1,num_users):
@@ -65,7 +65,7 @@ def create_ratings_matrix(ratings,rev_movie_id_dict,num_movies,num_users):
 			ratings_mat[int(rev_movie_id_dict[movie_id]),int(i-1)] = float(usr_rating)
 			indicators_mat[int(rev_movie_id_dict[movie_id]),int(i-1)] = 1
 
-	R = pd.DataFrame(ratings_mat) 
+	R = pd.DataFrame(ratings_mat)
 	I = pd.DataFrame(indicators_mat)
 
 	R.to_csv('rating_mat.csv',index=False)
@@ -105,4 +105,4 @@ print "Rating..."
 movies = avg_user_rating(ratings,movies,movie_id_dict,num_movies)
 # Output to .csv
 print "Writing output..."
-movies.to_csv('data-set.csv', index=False)	
+movies.to_csv('data-set.csv', index=False)
