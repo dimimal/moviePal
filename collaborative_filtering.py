@@ -11,6 +11,7 @@ import os
 #		indicators_mat: # movies * # users (I(i,j)=1 if movie i was rated by user j)
 #		reg: regularization factor > 0 in order to regularize
 
+
 # returns: reg_cost: the squared error cost regularized by reg
 # 		   grad: the two gradients in a matrix
 def cost_function(params, movie_params, ratings_mat, indicators_mat, num_users, num_movies, num_features, reg):
@@ -51,7 +52,7 @@ def normalize_ratings(ratings_mat, indicators_mat):
 	m, n = ratings_mat.shape
 	ratings_mat_mean = np.zeros(m)
 	ratings_mat_norm = np.zeros(ratings_mat.shape)
-	
+
 	# subtract the mean of all non-zero values for each row
 	for i in range(m):
 		idx = (indicators_mat[i,:]==1).nonzero()[0]
@@ -63,7 +64,7 @@ def normalize_ratings(ratings_mat, indicators_mat):
 			ratings_mat_norm[i,idx] = 0.0
 	return ratings_mat_norm, ratings_mat_mean
 #=================================================================================================
-# This part is used for debugging 
+# This part is used for debugging
 # Checks numerical and gradients for consistency
 
 from computeNumericalGradient import computeNumericalGradient
@@ -129,7 +130,7 @@ movie_params = pd.read_csv("movie_feats_mat.csv").as_matrix()
 num_movie_feats = movie_params.shape[1]
 num_feats = num_movie_feats
 num_movies = ratings_mat.shape[0]
-num_users = ratings_mat.shape[1] 
+num_users = ratings_mat.shape[1]
 print num_movies, num_users
 
 #=================================== create parameters to minimize ===================================
@@ -218,9 +219,9 @@ for j in range(10):
 		reg = 1.5
 
 		# Cost and gradient functions for the optimization.
-		costFunc = lambda p: cost_function(p, movie_params, ratings_mat_norm_batch, indicators_mat_batch, 
+		costFunc = lambda p: cost_function(p, movie_params, ratings_mat_norm_batch, indicators_mat_batch,
 					num_users_batch, num_movies, num_feats, reg)[0]
-		gradFunc = lambda p: cost_function(p, movie_params, ratings_mat_norm_batch, indicators_mat_batch, 
+		gradFunc = lambda p: cost_function(p, movie_params, ratings_mat_norm_batch, indicators_mat_batch,
 					 num_users_batch, num_movies, num_feats, reg)[1]
 
 		result = minimize(costFunc, initial_parameters, method='CG', jac=gradFunc, options={'disp': True, 'maxiter': 100})
@@ -230,7 +231,7 @@ for j in range(10):
 		user_params_batch = theta.reshape(num_users_batch, num_feats)
 		if i > 0:
 			user_params[i:(i + batch_size),:] = user_params_batch
-		
+
 		else:
 			print "First mini batch finished"
 			user_params[i:(i + batch_size),:] = user_params_batch
